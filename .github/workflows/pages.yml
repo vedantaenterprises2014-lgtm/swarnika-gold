@@ -20,14 +20,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract site files
         run: unzip -o swarnika-site-package.zip -d site
-      - name: Add owner dashboard
-        run: cp admin.html site/admin.html
-      - name: Securely connect the public shop inventory
+      - name: Add owner dashboards and checkout
         run: |
+          cp admin.html site/admin.html
+          cp orders.html site/orders.html
+          cp checkout-live.js site/checkout-live.js
           python - <<'PY'
           from pathlib import Path
-          page = Path("site/index.html")
-          html = page.read_text(encoding="utf-8")
+          admin = Path('site/admin.html')
+          owner = admin.read_text(encoding='utf-8')
+          owner = owner.replace('<a href="./">View shop</a>', '<a href="./">View shop</a> <a href="orders.html">Order inbox</a>')
+          admin.write_text(owner, encoding='utf-8')
+          page = Path('site/index.html')
+          html = page.read_text(encoding='utf-8')
           html = html.replace('<a href="#upload">Your jewellery</a>', '')
           html = html.replace('<a class="btn btn-outline" href="#upload" style="text-decoration:none">Add your jewellery</a>', '')
           html = html.replace('<a href="#upload">Add your jewellery</a>', '')
@@ -36,9 +41,24 @@ jobs:
           html = html[:start] + html[end:]
           html = html.replace('<a href="#collection">Shop the collection</a><a href="#">Shipping & returns</a>', '<a href="#collection">Shop the collection</a><a href="admin.html">Owner sign in</a><a href="#">Shipping & returns</a>')
           html = html.replace('No pieces in this category yet. Add your own jewellery photos below.', 'No pieces in this category yet.')
-          start = html.index("const input=document.getElementById('photoInput');")
-          end = html.index("document.getElementById('year')", start)
-          html = html[:start] + html[end:]
+          start = html.index('const seed=[')
+          end = html.index('];', start) + 2
+          html = html[:start] + 'const seed=[];' + html[end:]
+          demo = html.find('// Storefront enhancements: local discount codes and a saved demo order record.')
+          if demo >= 0:
+              start = html.rfind('<script>', 0, demo)
+              end = html.find('</script>', demo) + len('</script>')
+              html = html[:start] + html[end:]
+          html = html.replace('Demo codes: SWARNIKA10 (10% off), WELCOME100 (₹100 off). Shipping included in this preview.', 'Discounts are applied only when a valid owner code is entered.')
+          html = html.replace('value="UPI" checked> UPI / online', 'value="UPI" checked> UPI, cards or netbanking (secure online payment)')
+          demo = html.find('<div class="demo">')
+          if demo >= 0:
+              end = html.find('</div>', demo) + len('</div>')
+              html = html[:demo] + '<div class="notice">Secure online payments are processed by Razorpay. Cash on delivery is also available.</div>' + html[end:]
+          html = html.replace('Place demo order ·', 'Place order ·')
+          html = html.replace('<h2>Your demo order is noted</h2>', '<h2>Order received</h2>')
+          html = html.replace('This is only a local preview. No payment was taken and no order was sent to Swarnika Gold.', 'Your order details have been sent securely to Swarnika Gold.')
+          html = html.replace('Demo storefront. Add verified business, hallmark, returns and payment details before taking orders.', 'Online orders · Secure checkout')
           html = html.replace("let custom=JSON.parse(localStorage.getItem(LS_PRODUCTS)||'[]'),cart=", "let custom=[],remoteProducts=[],cart=")
           html = html.replace("<script>\nconst LS_PRODUCTS=", '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>\nconst LS_PRODUCTS=')
           old = "const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...custom,...seed];"
@@ -47,7 +67,8 @@ jobs:
           marker = "document.getElementById('year').textContent=new Date().getFullYear();renderProducts();updateCart();"
           load = "async function loadInventory(){const{data,error}=await shopDb.from('products').select('*').order('created_at',{ascending:false});if(error)return;remoteProducts=data.map(p=>({id:p.id,name:p.name,price:Number(p.price),category:p.category,desc:p.description||'',img:p.image_url,tag:'Your piece'}));renderProducts()}loadInventory();"
           html = html.replace(marker, load + marker)
-          page.write_text(html, encoding="utf-8")
+          html = html.replace('</body>', '<script src="checkout-live.js"></script></body>')
+          page.write_text(html, encoding='utf-8')
           PY
       - uses: actions/upload-pages-artifact@v3
         with:
