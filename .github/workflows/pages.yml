@@ -26,6 +26,7 @@ jobs:
           cp orders.html site/orders.html
           cp checkout-live.js site/checkout-live.js
           cp terms.html site/terms.html
+          cp "WhatsApp Image 2026-10-13 at 5.00.30 PM.jpeg" site/phonepe-qr.jpeg
           python - <<'PY'
           from pathlib import Path
           admin = Path('site/admin.html')
