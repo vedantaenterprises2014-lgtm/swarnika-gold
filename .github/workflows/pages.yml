@@ -68,8 +68,9 @@ jobs:
           old = "const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...custom,...seed];"
           new = "const shopDb=window.supabase.createClient('https://vuvvliyclsmbwdislcbp.supabase.co','sb_publishable_QM9galJwG7XvI07THbTnAA_nSQztzbb');const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...remoteProducts,...custom,...seed];"
           html = html.replace(old, new)
+          html = html.replace("const LS_PRODUCTS='swarnika_products_v1',LS_CART='swarnika_cart_v1';", "const LS_PRODUCTS='swarnika_products_v1',LS_CART='swarnika_cart_v2';")
           marker = "document.getElementById('year').textContent=new Date().getFullYear();renderProducts();updateCart();"
-          load = "async function loadInventory(){const{data,error}=await shopDb.from('products').select('*').order('created_at',{ascending:false});if(error)return;remoteProducts=data.map(p=>({id:p.id,name:p.name,price:Number(p.price),category:p.category,desc:p.description||'',img:p.image_url,tag:'Your piece'}));renderProducts()}loadInventory();"
+          load = "async function loadInventory(){const{data,error}=await shopDb.from('products').select('*').order('created_at',{ascending:false});if(error)return;remoteProducts=data.map(p=>({id:p.id,name:p.name,price:Number(p.price),category:p.category,desc:p.description||'',img:p.image_url,tag:'Your piece'}));const valid=new Set(remoteProducts.map(p=>String(p.id)));cart=cart.filter(x=>valid.has(String(x.id))&&Number.isInteger(Number(x.qty))&&Number(x.qty)>0);save();renderProducts();updateCart()}loadInventory();"
           html = html.replace(marker, load + marker)
           html = html.replace('</body>', '<script src="checkout-live.js"></script></body>')
           page.write_text(html, encoding='utf-8')
