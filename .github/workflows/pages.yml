@@ -33,6 +33,8 @@ jobs:
           admin.write_text(owner, encoding='utf-8')
           page = Path('site/index.html')
           html = page.read_text(encoding='utf-8')
+          html = '\n'.join(line for line in html.splitlines() if "const input=document.getElementById('photoInput');" not in line and "document.getElementById('productForm').addEventListener(" not in line)
+          html = '\n'.join(line for line in html.splitlines() if "const input=document.getElementById('photoInput');" not in line and "document.getElementById('productForm').addEventListener(" not in line)
           html = html.replace('<a href="#upload">Your jewellery</a>', '')
           html = html.replace('<a class="btn btn-outline" href="#upload" style="text-decoration:none">Add your jewellery</a>', '')
           html = html.replace('<a href="#upload">Add your jewellery</a>', '')
