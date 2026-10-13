@@ -20,6 +20,24 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract site files
         run: unzip -o swarnika-site-package.zip -d site
+      - name: Remove customer-facing product upload controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          page = Path("site/index.html")
+          html = page.read_text(encoding="utf-8")
+          html = html.replace('<a href="#upload">Your jewellery</a>', '')
+          html = html.replace('<a class="btn btn-outline" href="#upload" style="text-decoration:none">Add your jewellery</a>', '')
+          html = html.replace('<a href="#upload">Add your jewellery</a>', '')
+          start = html.index('<section class="section alt" id="upload">')
+          end = html.index('</section>', start) + len('</section>')
+          html = html[:start] + html[end:]
+          html = html.replace('No pieces in this category yet. Add your own jewellery photos below.', 'No pieces in this category yet.')
+          start = html.index("const input=document.getElementById('photoInput');")
+          end = html.index("document.getElementById('year')", start)
+          html = html[:start] + html[end:]
+          page.write_text(html, encoding="utf-8")
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
