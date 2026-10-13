@@ -25,6 +25,7 @@ jobs:
           cp admin.html site/admin.html
           cp orders.html site/orders.html
           cp checkout-live.js site/checkout-live.js
+          cp terms.html site/terms.html
           python - <<'PY'
           from pathlib import Path
           admin = Path('site/admin.html')
@@ -41,7 +42,7 @@ jobs:
           start = html.index('<section class="section alt" id="upload">')
           end = html.index('</section>', start) + len('</section>')
           html = html[:start] + html[end:]
-          html = html.replace('<a href="#collection">Shop the collection</a><a href="#">Shipping & returns</a>', '<a href="#collection">Shop the collection</a><a href="admin.html">Owner sign in</a><a href="#">Shipping & returns</a>')
+          html = html.replace('<a href="#collection">Shop the collection</a><a href="#">Shipping & returns</a>', '<a href="#collection">Shop the collection</a><a href="admin.html">Owner sign in</a><a href="terms.html">Care & exchange</a>')
           html = html.replace('No pieces in this category yet. Add your own jewellery photos below.', 'No pieces in this category yet.')
           start = html.index('const seed=[')
           end = html.index('];', start) + 2
