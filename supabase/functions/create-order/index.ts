@@ -29,7 +29,7 @@ Deno.serve(async (req)=>{
     const orderNumber='SW'+new Date().toISOString().slice(2,10).replaceAll('-','')+crypto.randomUUID().slice(0,6).toUpperCase();
     const{data:order,error:saveErr}=await db.from('orders').insert({order_number:orderNumber,customer_name:name,customer_phone:phone,customer_email:email,delivery_address:address,items,subtotal_paise:subtotal,discount_paise:discount,total_paise:total,coupon_code:couponCode||null,payment_method:method}).select('id,order_number,total_paise').single();
     if(saveErr||!order)return reply({error:'We could not save this order. Please try again.'},500);
-    if(method==='cod')return reply({orderId:order.id,orderNumber,total,subtotal,discount,paymentMethod:'cod'});
+    if(method==='cod'){await notifyOwner({orderNumber,name,phone,total,method:'Cash on delivery',items:items.map(x=>x.name+' × '+x.quantity).join(', ')});return reply({orderId:order.id,orderNumber,total,subtotal,discount,paymentMethod:'cod'});}
     const keyId=Deno.env.get('RAZORPAY_KEY_ID'),secret=Deno.env.get('RAZORPAY_KEY_SECRET');
     if(!keyId||!secret){await db.from('orders').update({order_status:'cancelled',payment_status:'failed'}).eq('id',order.id);return reply({error:'Online payment is being set up. Please choose Cash on Delivery for now.'},503);}
     const gateway=await fetch('https://api.razorpay.com/v1/orders',{method:'POST',headers:{Authorization:'Basic '+btoa(keyId+':'+secret),'Content-Type':'application/json'},body:JSON.stringify({amount:total,currency:'INR',receipt:orderNumber,notes:{shop_order_id:order.id}})});
@@ -38,3 +38,10 @@ Deno.serve(async (req)=>{
     return reply({orderId:order.id,orderNumber,amount:total,currency:'INR',keyId,razorpayOrderId:result.id,subtotal,discount,paymentMethod:'razorpay'});
   } catch {return reply({error:'We could not place the order. Please try again.'},400);}
 });
+
+async function notifyOwner(o:{orderNumber:string;name:string;phone:string;total:number;method:string;items:string}){
+ const token=Deno.env.get('WHATSAPP_ACCESS_TOKEN'),phoneId=Deno.env.get('WHATSAPP_PHONE_NUMBER_ID'),to=Deno.env.get('OWNER_WHATSAPP_NUMBER'),template=Deno.env.get('WHATSAPP_ORDER_TEMPLATE'),version=Deno.env.get('WHATSAPP_GRAPH_VERSION'),language=Deno.env.get('WHATSAPP_TEMPLATE_LANGUAGE')||'en';
+ if(!token||!phoneId||!to||!template||!version)return;
+ const params=[o.orderNumber,o.name,o.phone,o.items,'₹'+(o.total/100).toLocaleString('en-IN'),o.method].map(text=>({type:'text',text:String(text).slice(0,500)}));
+ try{await fetch('https://graph.facebook.com/'+version+'/'+phoneId+'/messages',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to,type:'template',template:{name:template,language:{code:language},components:[{type:'body',parameters:params}]}})});}catch{/* The customer order must not fail because WhatsApp is unavailable. */}
+}
