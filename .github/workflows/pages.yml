@@ -34,12 +34,13 @@ jobs:
           start = html.index('<section class="section alt" id="upload">')
           end = html.index('</section>', start) + len('</section>')
           html = html[:start] + html[end:]
+          html = html.replace('<a href="#collection">Shop the collection</a><a href="#">Shipping & returns</a>', '<a href="#collection">Shop the collection</a><a href="admin.html">Owner sign in</a><a href="#">Shipping & returns</a>')
           html = html.replace('No pieces in this category yet. Add your own jewellery photos below.', 'No pieces in this category yet.')
           start = html.index("const input=document.getElementById('photoInput');")
           end = html.index("document.getElementById('year')", start)
           html = html[:start] + html[end:]
           html = html.replace("let custom=JSON.parse(localStorage.getItem(LS_PRODUCTS)||'[]'),cart=", "let custom=[],remoteProducts=[],cart=")
-          html = html.replace("<script>\nconst LS_PRODUCTS=", '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>\nconst LS_PRODUCTS=')
+          html = html.replace("<script>\nconst LS_PRODUCTS=", '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>\nconst LS_PRODUCTS=')
           old = "const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...custom,...seed];"
           new = "const shopDb=window.supabase.createClient('https://vuvvliyclsmbwdislcbp.supabase.co','sb_publishable_QM9galJwG7XvI07THbTnAA_nSQztzbb');const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...remoteProducts,...custom,...seed];"
           html = html.replace(old, new)
