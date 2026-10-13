@@ -20,7 +20,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract site files
         run: unzip -o swarnika-site-package.zip -d site
-      - name: Remove customer-facing product upload controls
+      - name: Add owner dashboard
+        run: cp admin.html site/admin.html
+      - name: Securely connect the public shop inventory
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -36,6 +38,14 @@ jobs:
           start = html.index("const input=document.getElementById('photoInput');")
           end = html.index("document.getElementById('year')", start)
           html = html[:start] + html[end:]
+          html = html.replace("let custom=JSON.parse(localStorage.getItem(LS_PRODUCTS)||'[]'),cart=", "let custom=[],remoteProducts=[],cart=")
+          html = html.replace("<script>\nconst LS_PRODUCTS=", '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>\nconst LS_PRODUCTS=')
+          old = "const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...custom,...seed];"
+          new = "const shopDb=window.supabase.createClient('https://vuvvliyclsmbwdislcbp.supabase.co','sb_publishable_QM9galJwG7XvI07THbTnAA_nSQztzbb');const fmt=n=>'₹'+Number(n).toLocaleString('en-IN');const allProducts=()=>[...remoteProducts,...custom,...seed];"
+          html = html.replace(old, new)
+          marker = "document.getElementById('year').textContent=new Date().getFullYear();renderProducts();updateCart();"
+          load = "async function loadInventory(){const{data,error}=await shopDb.from('products').select('*').order('created_at',{ascending:false});if(error)return;remoteProducts=data.map(p=>({id:p.id,name:p.name,price:Number(p.price),category:p.category,desc:p.description||'',img:p.image_url,tag:'Your piece'}));renderProducts()}loadInventory();"
+          html = html.replace(marker, load + marker)
           page.write_text(html, encoding="utf-8")
           PY
       - uses: actions/upload-pages-artifact@v3
