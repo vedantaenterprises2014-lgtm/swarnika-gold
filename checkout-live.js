@@ -10,7 +10,7 @@ document.addEventListener('submit',async e=>{
   const method=document.querySelector('input[name="payment"]:checked')?.value==='COD'?'cod':'upi_manual';
   const customer={name:document.getElementById('cname').value,phone:document.getElementById('cphone').value,email:document.getElementById('cemail').value,address:{line1:document.getElementById('caddress').value,area:document.getElementById('carea').value,landmark:document.getElementById('clandmark').value,city:document.getElementById('ccity').value,state:document.getElementById('cstate').value,pin:document.getElementById('cpin').value}};
   const result=await shopDb.functions.invoke('create-order',{body:{customer,items:cart.map(x=>({id:x.id,quantity:x.qty})),paymentMethod:method,couponCode:document.getElementById('couponInput')?.value.trim()||''}});
-  if(result.error||!result.data)throw new Error(result.data?.error||result.error?.message||'Could not save the order. Try again.');
+  if(result.error||!result.data){let message=result.data?.error;if(result.error?.context){try{const body=await result.error.context.clone().json();message=body?.error||body?.message||message}catch{}}throw new Error(message||result.error?.message||'Could not save the order. Please refresh the shop and try again.')}
   const order=result.data;document.getElementById('checkoutFormWrap').style.display='none';document.getElementById('successBox').style.display='block';
   if(method==='cod'){
    document.querySelector('#successBox h2').textContent='Order received — thank you!';document.querySelector('#successBox p').textContent='Order '+order.orderNumber+' is placed. Pay '+swarnikaMoney(order.total)+' on delivery. We will contact you to confirm.';
